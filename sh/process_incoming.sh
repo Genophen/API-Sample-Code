@@ -6,9 +6,9 @@ then
 else
    DT_STAMP=$1
 fi
-
 for FILE_NAME in `ls ${IN_DIR}/*.txt.gpg`
 do
+   COPY_RAW_FILE=0
    BASE_NAME=`basename ${FILE_NAME}`
    if [[ ${BASE_NAME} == *${DT_STAMP}* ]]
    then
@@ -21,7 +21,9 @@ do
       delim='|'
       case ${OUT_FILE} in
          *MA_AZ_Claims*)
-            S3_BUCKET=s3://basehealth-data/cigna/inbound/claims/
+            S3_BUCKET=s3://basehealth-data/cigna/inbound/claims/datedInboundClaims/
+            S3_RAW_BUCKET=s3://basehealth-data/cigna/inbound/claims/sftp/
+	    COPY_RAW_FILE=1
             ;;
          *MA_AZ_Membership*)
             S3_BUCKET=s3://basehealth-data/cigna/inbound/membership/
@@ -43,6 +45,10 @@ do
       yes ${fmtd_date} | head -n ${file_length} >>/tmp/$$
       paste -d${delim} /tmp/$$ "incoming/${OUT_FILE}" > "incoming/dtd_${OUT_FILE}"
       aws s3 cp "incoming/dtd_${OUT_FILE}" ${S3_BUCKET}
+      if [[ ${COPY_RAW_FILE} -eq 1 ]]
+      then
+        aws s3 cp "incoming/${OUT_FILE}" ${S3_RAW_BUCKET}
+      fi
       rm /tmp/$$ "incoming/${OUT_FILE}"
    fi
 done
